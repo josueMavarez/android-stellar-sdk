@@ -1,7 +1,5 @@
 package org.stellar.sdk;
 
-import com.google.common.io.BaseEncoding;
-
 import org.apache.commons.android.codec.binary.Base64;
 import org.stellar.sdk.xdr.DecoratedSignature;
 import org.stellar.sdk.xdr.EnvelopeType;
@@ -63,6 +61,7 @@ public class Transaction {
 
   /**
    * Adds a new signature ed25519PublicKey to this transaction.
+   *
    * @param signer {@link KeyPair} object representing a signer
    */
   public void sign(KeyPair signer) {
@@ -73,6 +72,7 @@ public class Transaction {
 
   /**
    * Adds a new sha256Hash signature to this transaction by revealing preimage.
+   *
    * @param preimage the sha256 hash of preimage should be equal to signer hash
    */
   public void sign(byte[] preimage) {
@@ -140,7 +140,7 @@ public class Transaction {
   public Memo getMemo() {
     return mMemo;
   }
-  
+
   /**
    * @return TimeBounds, or null (representing no time restrictions)
    */
@@ -192,13 +192,13 @@ public class Transaction {
 
   /**
    * Creates a <code>Transaction</code> instance from previously build <code>TransactionEnvelope</code>
+   *
    * @param envelope Base-64 encoded <code>TransactionEnvelope</code>
    * @return
    * @throws IOException
    */
   public static Transaction fromEnvelopeXdr(String envelope) throws IOException {
-    BaseEncoding base64Encoding = BaseEncoding.base64();
-    byte[] bytes = base64Encoding.decode(envelope);
+    byte[] bytes = android.util.Base64.decode(envelope, android.util.Base64.DEFAULT);
 
     TransactionEnvelope transactionEnvelope = TransactionEnvelope.decode(new XdrDataInputStream(new ByteArrayInputStream(bytes)));
     return fromEnvelopeXdr(transactionEnvelope);
@@ -206,6 +206,7 @@ public class Transaction {
 
   /**
    * Creates a <code>Transaction</code> instance from previously build <code>TransactionEnvelope</code>
+   *
    * @param envelope
    * @return
    */
@@ -274,9 +275,10 @@ public class Transaction {
 
     /**
      * Construct a new transaction builder.
+     *
      * @param sourceAccount The source account for this transaction. This account is the account
-     * who will use a sequence number. When build() is called, the account object's sequence number
-     * will be incremented.
+     *                      who will use a sequence number. When build() is called, the account object's sequence number
+     *                      will be incremented.
      */
     public Builder(TransactionBuilderAccount sourceAccount) {
       checkNotNull(sourceAccount, "sourceAccount cannot be null");
@@ -290,6 +292,7 @@ public class Transaction {
 
     /**
      * Adds a new <a href="https://www.stellar.org/developers/learn/concepts/list-of-operations.html" target="_blank">operation</a> to this transaction.
+     *
      * @param operation
      * @return Builder object so you can chain methods.
      * @see Operation
@@ -302,6 +305,7 @@ public class Transaction {
 
     /**
      * Adds a <a href="https://www.stellar.org/developers/learn/concepts/transactions.html" target="_blank">memo</a> to this transaction.
+     *
      * @param memo
      * @return Builder object so you can chain methods.
      * @see Memo
@@ -314,9 +318,10 @@ public class Transaction {
       mMemo = memo;
       return this;
     }
-    
+
     /**
      * Adds a <a href="https://www.stellar.org/developers/learn/concepts/transactions.html" target="_blank">time-bounds</a> to this transaction.
+     *
      * @param timeBounds
      * @return Builder object so you can chain methods.
      * @see TimeBounds
