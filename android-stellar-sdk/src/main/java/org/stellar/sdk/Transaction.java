@@ -1,11 +1,16 @@
 package org.stellar.sdk;
 
+import com.google.common.io.BaseEncoding;
+
 import org.apache.commons.android.codec.binary.Base64;
 import org.stellar.sdk.xdr.DecoratedSignature;
 import org.stellar.sdk.xdr.EnvelopeType;
 import org.stellar.sdk.xdr.SignatureHint;
+import org.stellar.sdk.xdr.TransactionEnvelope;
+import org.stellar.sdk.xdr.XdrDataInputStream;
 import org.stellar.sdk.xdr.XdrDataOutputStream;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -39,6 +44,18 @@ public class Transaction {
     checkArgument(operations.length > 0, "At least one operation required");
 
     mFee = operations.length * BASE_FEE;
+    mSignatures = new ArrayList<DecoratedSignature>();
+    mMemo = memo != null ? memo : Memo.none();
+    mTimeBounds = timeBounds;
+  }
+
+  Transaction(KeyPair sourceAccount, int fee, long sequenceNumber, Operation[] operations, Memo memo, TimeBounds timeBounds) {
+    mSourceAccount = checkNotNull(sourceAccount, "sourceAccount cannot be null");
+    mSequenceNumber = checkNotNull(sequenceNumber, "sequenceNumber cannot be null");
+    mOperations = checkNotNull(operations, "operations cannot be null");
+    checkArgument(operations.length > 0, "At least one operation required");
+
+    mFee = fee;
     mSignatures = new ArrayList<DecoratedSignature>();
     mMemo = memo != null ? memo : Memo.none();
     mTimeBounds = timeBounds;
@@ -146,8 +163,8 @@ public class Transaction {
     org.stellar.sdk.xdr.Uint32 fee = new org.stellar.sdk.xdr.Uint32();
     fee.setUint32(mFee);
     // sequenceNumber
-    org.stellar.sdk.xdr.Uint64 sequenceNumberUint = new org.stellar.sdk.xdr.Uint64();
-    sequenceNumberUint.setUint64(mSequenceNumber);
+    org.stellar.sdk.xdr.Int64 sequenceNumberUint = new org.stellar.sdk.xdr.Int64();
+    sequenceNumberUint.setInt64(mSequenceNumber);
     org.stellar.sdk.xdr.SequenceNumber sequenceNumber = new org.stellar.sdk.xdr.SequenceNumber();
     sequenceNumber.setSequenceNumber(sequenceNumberUint);
     // sourceAccount
@@ -170,6 +187,45 @@ public class Transaction {
     transaction.setMemo(mMemo.toXdr());
     transaction.setTimeBounds(mTimeBounds == null ? null : mTimeBounds.toXdr());
     transaction.setExt(ext);
+    return transaction;
+  }
+
+  /**
+   * Creates a <code>Transaction</code> instance from previously build <code>TransactionEnvelope</code>
+   * @param envelope Base-64 encoded <code>TransactionEnvelope</code>
+   * @return
+   * @throws IOException
+   */
+  public static Transaction fromEnvelopeXdr(String envelope) throws IOException {
+    BaseEncoding base64Encoding = BaseEncoding.base64();
+    byte[] bytes = base64Encoding.decode(envelope);
+
+    TransactionEnvelope transactionEnvelope = TransactionEnvelope.decode(new XdrDataInputStream(new ByteArrayInputStream(bytes)));
+    return fromEnvelopeXdr(transactionEnvelope);
+  }
+
+  /**
+   * Creates a <code>Transaction</code> instance from previously build <code>TransactionEnvelope</code>
+   * @param envelope
+   * @return
+   */
+  public static Transaction fromEnvelopeXdr(TransactionEnvelope envelope) {
+    org.stellar.sdk.xdr.Transaction tx = envelope.getTx();
+    int mFee = tx.getFee().getUint32();
+    KeyPair mSourceAccount = KeyPair.fromXdrPublicKey(tx.getSourceAccount().getAccountID());
+    Long mSequenceNumber = tx.getSeqNum().getSequenceNumber().getInt64();
+    Memo mMemo = Memo.fromXdr(tx.getMemo());
+    TimeBounds mTimeBounds = TimeBounds.fromXdr(tx.getTimeBounds());
+
+    Operation[] mOperations = new Operation[tx.getOperations().length];
+    for (int i = 0; i < tx.getOperations().length; i++) {
+      mOperations[i] = Operation.fromXdr(tx.getOperations()[i]);
+    }
+
+    Transaction transaction = new Transaction(mSourceAccount, mFee, mSequenceNumber, mOperations, mMemo, mTimeBounds);
+
+    Collections.addAll(transaction.mSignatures, envelope.getSignatures());
+
     return transaction;
   }
 

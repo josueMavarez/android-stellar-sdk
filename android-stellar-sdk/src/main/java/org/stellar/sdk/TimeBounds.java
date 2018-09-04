@@ -30,6 +30,17 @@ final public class TimeBounds {
 	public long getMaxTime() {
 		return mMaxTime;
 	}
+
+	public static TimeBounds fromXdr(org.stellar.sdk.xdr.TimeBounds timeBounds) {
+		if (timeBounds == null) {
+			return null;
+		}
+
+		return new TimeBounds(
+				timeBounds.getMinTime().getUint64().longValue(),
+				timeBounds.getMaxTime().getUint64().longValue()
+		);
+	}
 	
 	public org.stellar.sdk.xdr.TimeBounds toXdr() {
 		org.stellar.sdk.xdr.TimeBounds timeBounds = new org.stellar.sdk.xdr.TimeBounds();
